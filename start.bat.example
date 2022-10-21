@@ -1,6 +1,9 @@
+@echo off
+cls
 REM Set the DISCORD_TOKEN environment variable to your bot's token.
 set DISCORD_TOKEN=your_token_here
-
+set BOT_OWNER_ID=ownerid_here
+cls
 REM Start the bot.
 cargo check
 cargo run
