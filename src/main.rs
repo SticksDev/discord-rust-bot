@@ -2,7 +2,10 @@
 use std::{env, time::Duration};
 
 // S L A S H  C O M M A N D S
-use poise::{serenity_prelude::{self as serenity}, FrameworkOptions};
+use poise::{
+    serenity_prelude::{self as serenity},
+    FrameworkOptions,
+};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -29,7 +32,6 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     }
 }
 
-
 #[tokio::main]
 async fn main() {
     // Configure the client with your Discord bot token in the environment
@@ -46,40 +48,38 @@ async fn main() {
             // This is a custom event handler
             // It is called for every event that the framework receives
             // We can use it to log events, or do other things
-           
+
             Box::pin(async move {
                 // We can also return a future to be run after the event is handled
                 // This is useful for things like logging
                 // We can also return an error to stop the event from being handled
 
                 match event {
-                    poise::Event::Ready {data_about_bot} => {
+                    poise::Event::Ready { data_about_bot } => {
                         println!("Ready! Logged in as {}", data_about_bot.user.name);
                         println!("Session ID: {}", data_about_bot.session_id);
 
-                        _ctx.set_activity(serenity::Activity::watching("sticks & sham cry")).await;
+                        _ctx.set_activity(serenity::Activity::watching("sticks & sham cry"))
+                            .await;
                     }
-                    _ => {},
+                    _ => {}
                 };
 
                 Ok(())
             })
         },
-        commands: vec![
-            register(),
-            h(),
-            age()
-        ],
+        commands: vec![register(), h(), age()],
         ..Default::default()
     };
 
     let framework = poise::Framework::builder()
         .options(options)
         .token(token)
-        .intents(serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT)
+        .intents(
+            serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT,
+        )
         .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(Data {}) }));
 
-    
     framework.run().await.unwrap();
     println!("Client started");
 }
@@ -89,7 +89,7 @@ async fn main() {
 async fn age(
     ctx: Context<'_>,
     #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), Error> { 
+) -> Result<(), Error> {
     let u = user.as_ref().unwrap_or_else(|| ctx.author());
     let response = format!("{}'s account was created at {}", u.name, u.created_at());
     ctx.say(response).await?;
@@ -101,7 +101,6 @@ async fn register(ctx: Context<'_>) -> Result<(), Error> {
     poise::builtins::register_application_commands_buttons(ctx).await?;
     Ok(())
 }
-
 
 /// h
 #[poise::command(prefix_command, slash_command)]
