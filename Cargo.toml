@@ -1,0 +1,25 @@
+[package]
+name = "discordbot-but-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
+eval = "0.4.3"
+
+# Local poise
+# poise = { path = "C:\\Users\\tsomm\\Desktop\\code\\poise" }
+
+# Live Poise
+poise = "0.4.1"
+
+[dependencies.serenity]
+default-features = false
+features = [
+    "cache",
+    "builder",
+    "model"
+]
+version  = "0.11"
