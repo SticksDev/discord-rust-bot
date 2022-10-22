@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use tokio::{sync::Mutex, io::copy};
+use tokio::{sync::Mutex};
 
 // S L A S H  C O M M A N D S
 use poise::{
@@ -20,7 +20,7 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 // User data, which is stored and accessible in all command invocations
 struct Data {
-    recentUsers: Arc<Mutex<Vec<String>>>,
+    recent_users: Arc<Mutex<Vec<String>>>,
 }
 
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
@@ -74,14 +74,14 @@ async fn main() {
                             .await;
                     }
                     poise::Event::Message { new_message } => {
-                        let mut recentUsersReadable = _data.recentUsers.lock().await;
+                        let mut recent_users_readable = _data.recent_users.lock().await;
                         
                         if new_message.author.bot {
                             return Ok(());
                         }
 
                         // Check if the user has sent a message recently
-                        if recentUsersReadable
+                        if recent_users_readable
                             .contains(&new_message.author.id.to_string())
                         {
                             // Attempt to DM the user and tell them to stop spamming
@@ -104,7 +104,7 @@ async fn main() {
                                 new_message.react(_ctx, '🇭').await?;
 
                                 // Add the user to the array
-                                recentUsersReadable.push(new_message.author.id.to_string());
+                                recent_users_readable.push(new_message.author.id.to_string());
                             }
                             _ => {}
                         }
@@ -127,25 +127,25 @@ async fn main() {
         )
         .user_data_setup(move |_ctx, _ready, _framework| {
             Box::pin(async move {
-                let emptyArr = Arc::new(Mutex::new(Vec::new())); 
-                let emptyArrClone = Arc::clone(&emptyArr);
+                let empty_arr = Arc::new(Mutex::new(Vec::new())); 
+                let empty_arr_clone = Arc::clone(&empty_arr);
 
                 // Create task to clear with the emptyArr (clone) every 2 seconds.
                 tokio::spawn(async move {
                     loop {
                         tokio::time::sleep(Duration::from_secs(2)).await;
-                        let mut recentUsers = emptyArrClone.lock().await;
+                        let mut recent_users = empty_arr_clone.lock().await;
                         
-                        if recentUsers.len() > 0 {
-                            println!("Cleared recentUsers (count: {})", recentUsers.len());
-                            recentUsers.clear();
+                        if recent_users.len() > 0 {
+                            println!("Cleared recentUsers (count: {})", recent_users.len());
+                            recent_users.clear();
                         }
                     }
                 });
 
                 Ok(Data {
                     // Create empty recentUsers vec
-                    recentUsers: emptyArr,
+                    recent_users: empty_arr,
                 })
             })
         });
