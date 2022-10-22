@@ -1,11 +1,7 @@
 // Load rust dependencies
-use std::{
-    env,
-    sync::{Arc},
-    time::Duration,
-};
+use std::{env, sync::Arc, time::Duration};
 
-use tokio::{sync::Mutex};
+use tokio::sync::Mutex;
 
 // S L A S H  C O M M A N D S
 use poise::{
@@ -45,7 +41,6 @@ async fn main() {
     // Configure the client with your Discord bot token in the environment
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
-
     let options = FrameworkOptions {
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("~".into()),
@@ -75,15 +70,13 @@ async fn main() {
                     }
                     poise::Event::Message { new_message } => {
                         let mut recent_users_readable = _data.recent_users.lock().await;
-                        
+
                         if new_message.author.bot {
                             return Ok(());
                         }
 
                         // Check if the user has sent a message recently
-                        if recent_users_readable
-                            .contains(&new_message.author.id.to_string())
-                        {
+                        if recent_users_readable.contains(&new_message.author.id.to_string()) {
                             // Attempt to DM the user and tell them to stop spamming
                             if let Err(e) = new_message
                                 .author
@@ -95,7 +88,7 @@ async fn main() {
                                 println!("[warn] Error sending ratelimited DM: {}", e);
                             }
 
-                            return Ok(())
+                            return Ok(());
                         }
 
                         match new_message.content.as_str() {
@@ -127,7 +120,7 @@ async fn main() {
         )
         .user_data_setup(move |_ctx, _ready, _framework| {
             Box::pin(async move {
-                let empty_arr = Arc::new(Mutex::new(Vec::new())); 
+                let empty_arr = Arc::new(Mutex::new(Vec::new()));
                 let empty_arr_clone = Arc::clone(&empty_arr);
 
                 // Create task to clear with the emptyArr (clone) every 2 seconds.
@@ -135,7 +128,7 @@ async fn main() {
                     loop {
                         tokio::time::sleep(Duration::from_secs(2)).await;
                         let mut recent_users = empty_arr_clone.lock().await;
-                        
+
                         if recent_users.len() > 0 {
                             println!("Cleared recentUsers (count: {})", recent_users.len());
                             recent_users.clear();
@@ -178,4 +171,3 @@ async fn h(ctx: Context<'_>) -> Result<(), Error> {
     ctx.say("h").await?;
     Ok(())
 }
-
