@@ -1,5 +1,11 @@
 // Load rust dependencies
-use std::{env, time::Duration};
+use std::{
+    env,
+    sync::{Arc},
+    time::Duration,
+};
+
+use tokio::{sync::Mutex, io::copy};
 
 // S L A S H  C O M M A N D S
 use poise::{
@@ -13,7 +19,9 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 // User data, which is stored and accessible in all command invocations
-struct Data {}
+struct Data {
+    recentUsers: Arc<Mutex<Vec<String>>>,
+}
 
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     // This is our custom error handler
@@ -37,6 +45,7 @@ async fn main() {
     // Configure the client with your Discord bot token in the environment
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
+
     let options = FrameworkOptions {
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("~".into()),
@@ -54,6 +63,8 @@ async fn main() {
                 // This is useful for things like logging
                 // We can also return an error to stop the event from being handled
 
+                let ctx_readable = _ctx.clone();
+
                 match event {
                     poise::Event::Ready { data_about_bot } => {
                         println!("Ready! Logged in as {}", data_about_bot.user.name);
@@ -61,6 +72,42 @@ async fn main() {
 
                         _ctx.set_activity(serenity::Activity::watching("sticks & sham cry"))
                             .await;
+                    }
+                    poise::Event::Message { new_message } => {
+                        let mut recentUsersReadable = _data.recentUsers.lock().await;
+                        
+                        if new_message.author.bot {
+                            return Ok(());
+                        }
+
+                        // Check if the user has sent a message recently
+                        if recentUsersReadable
+                            .contains(&new_message.author.id.to_string())
+                        {
+                            // Attempt to DM the user and tell them to stop spamming
+                            if let Err(e) = new_message
+                                .author
+                                .dm(ctx_readable.http, |m| {
+                                    m.content(":x: You are being rate limited. Please wait a few seconds before sending another message.")
+                                })
+                                .await
+                            {
+                                println!("[warn] Error sending ratelimited DM: {}", e);
+                            }
+
+                            return Ok(())
+                        }
+
+                        match new_message.content.as_str() {
+                            "h" => {
+                                new_message.reply(_ctx, 'h').await?;
+                                new_message.react(_ctx, '🇭').await?;
+
+                                // Add the user to the array
+                                recentUsersReadable.push(new_message.author.id.to_string());
+                            }
+                            _ => {}
+                        }
                     }
                     _ => {}
                 };
@@ -78,7 +125,30 @@ async fn main() {
         .intents(
             serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT,
         )
-        .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(Data {}) }));
+        .user_data_setup(move |_ctx, _ready, _framework| {
+            Box::pin(async move {
+                let emptyArr = Arc::new(Mutex::new(Vec::new())); 
+                let emptyArrClone = Arc::clone(&emptyArr);
+
+                // Create task to clear with the emptyArr (clone) every 2 seconds.
+                tokio::spawn(async move {
+                    loop {
+                        tokio::time::sleep(Duration::from_secs(2)).await;
+                        let mut recentUsers = emptyArrClone.lock().await;
+                        
+                        if recentUsers.len() > 0 {
+                            println!("Cleared recentUsers (count: {})", recentUsers.len());
+                            recentUsers.clear();
+                        }
+                    }
+                });
+
+                Ok(Data {
+                    // Create empty recentUsers vec
+                    recentUsers: emptyArr,
+                })
+            })
+        });
 
     framework.run().await.unwrap();
     println!("Client started");
@@ -108,3 +178,4 @@ async fn h(ctx: Context<'_>) -> Result<(), Error> {
     ctx.say("h").await?;
     Ok(())
 }
+
